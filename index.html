@@ -378,15 +378,6 @@ function renderMain() {
 
 // ============ 事件绑定 ============
 function bindMainEvents() {
-  // 世界观卡片
-  document.querySelectorAll('.world-card').forEach(function(card) {
-    card.addEventListener('click', function() {
-      state.world = this.getAttribute('data-world');
-      save('world', state.world);
-      render();
-    });
-  });
-
   // 输入框回车
   var input = document.getElementById('todo-input');
   if (input) {
@@ -597,8 +588,16 @@ function escAttr(str) {
   return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ============ 商店物品点击 ============
+// ============ 全局点击委托 ============
 document.addEventListener('click', function(e) {
+  // 世界观卡片点击
+  var worldCard = e.target.closest('.world-card');
+  if (worldCard) {
+    state.world = worldCard.getAttribute('data-world');
+    save('world', state.world);
+    render();
+    return;
+  }
   // 商店物品点击
   var shopItem = e.target.closest('.shop-item');
   if (shopItem && !shopItem.classList.contains('owned')) {
