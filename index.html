@@ -222,6 +222,7 @@ function render() {
   } else {
     el.innerHTML = renderMain();
     bindMainEvents();
+    applySkin();
   }
 }
 
@@ -362,9 +363,9 @@ function renderMain() {
       '</div>';
   }
 
-  // 如果有激活皮肤，主背景由 applySkin() 通过 element style 控制，这里不写内联背景
-  var mainBg = state.activeSkin && SKIN_CONFIG[state.activeSkin] ? 'transparent' : bg + ',#1a1a2e';
-  return '<div style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
+  // 如果有激活皮肤，主背景不在这里写，由 applySkin() 控制
+  var mainBg = (state.activeSkin && SKIN_CONFIG[state.activeSkin]) ? 'transparent' : bg + ',#1a1a2e';
+  return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
     '<header class="header">' +
       '<div class="header-left">' +
         '<span style="font-size:1.3rem">' + (w ? w.icon : '') + '</span>' +
@@ -485,7 +486,6 @@ function handleAction(e) {
     var itemId = this.getAttribute('data-item-id');
     state.activeSkin = itemId;
     save('activeSkin', itemId);
-    applySkin();
     showToast('🎨 已切换主题！');
     render();
   }
@@ -623,18 +623,15 @@ function buyItem(itemId) {
 
 // ============ 应用皮肤 ============
 function applySkin() {
-  var appEl = document.getElementById('app');
+  var innerEl = document.getElementById('main-content');
   if (!state.activeSkin || !SKIN_CONFIG[state.activeSkin]) {
-    // 清除皮肤，恢复世界观默认背景
-    if (appEl) appEl.style.background = '';
+    if (innerEl) innerEl.style.background = '';
     var oldStyle = document.getElementById('skin-dynamic-style');
     if (oldStyle) oldStyle.remove();
     return;
   }
   var cfg = SKIN_CONFIG[state.activeSkin];
-  // 直接更新主 div 的背景（和内联 style 渲染保持一致）
-  if (appEl) appEl.style.background = cfg.bg + ',#1a1a2e';
-  // 动态样式：改按钮和进度条颜色
+  if (innerEl) innerEl.style.background = cfg.bg + ',#1a1a2e';
   var styleEl = document.getElementById('skin-dynamic-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
@@ -676,7 +673,6 @@ document.addEventListener('click', function(e) {
 
 // ============ 首次渲染 ============
 render();
-applySkin();
 </script>
 </body>
 </html>
