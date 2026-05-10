@@ -476,7 +476,7 @@ function renderMain() {
         '<input type="text" id="reward-task-input" placeholder="例如：写完季度报告" style="width:100%;padding:.6rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0;font-size:.9rem;outline:none;margin:.5rem 0;box-sizing:border-box">' +
         '<div style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#aaa;margin-bottom:.8rem">' +
           '<label>预估耗时：</label>' +
-          '<input type="number" id="reward-minutes-input" value="30" min="1" style="width:60px;padding:.2rem.4rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0">' +
+          '<input type="number" id="reward-minutes-input" value="30" min="1" style="width:60px;padding:.2rem .4rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0">' +
           '<span>分钟</span>' +
         '</div>' +
         '<p id="reward-ai-hint" style="font-size:.8rem;color:#888;margin-bottom:.8rem">✨ 点击"生成任务"将用 AI 生成创意冒险描述</p>' +
@@ -533,7 +533,7 @@ function renderMain() {
   // 设置弹窗
   let settingsHtml = '';
   if (state.showSettings) {
-    var hasApiKey = state.apiKey && state.apiKey.length >;
+    var hasApiKey = state.apiKey && state.apiKey.length > 0;
     settingsHtml = '<div class="modal-overlay" id="settings-overlay">' +
       '<div class="modal" style="max-width:450px">' +
         '<h3>⚙️ 设置</h3>' +
