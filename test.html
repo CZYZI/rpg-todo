@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<title>Test</title>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState } = React;
+function App() {
+  const [v, setV] = useState(0);
+  return (
+    <div style={{padding:40,color:'#fff',background:'#1a1a2e',minHeight:'100vh'}}>
+      <h1>✅ React 运行成功！</h1>
+      <p>计数：{v}</p>
+      <button onClick={() => setV(v+1)}>加1</button>
+    </div>
+  );
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

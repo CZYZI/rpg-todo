@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPG 待办冒险</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','PingFang SC',sans-serif;color:#e0e0e0;min-height:100vh;background:#1a1a2e}
+/* 世界观选择 */
+.world-select{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.world-select h1{font-size:2.4rem;margin-bottom:.3rem;color:#ffd700}
+.subtitle{color:#aaa;margin-bottom:2rem;font-size:1.1rem}
+.world-cards{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center}
+.world-card{background:rgba(255,255,255,.06);border:2px solid #444;border-radius:16px;padding:1.5rem 2rem;cursor:pointer;transition:all .2s;width:240px;text-align:center}
+.world-card:hover{transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.world-icon{font-size:2.5rem;display:block;margin-bottom:.5rem}
+.world-card h2{margin:.5rem 0;color:#fff}
+.world-card p{font-size:.8rem;color:#aaa;margin:.2rem 0}
+/* 顶部栏 */
+.header{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1.5rem;background:rgba(0,0,0,.35);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;gap:.5rem;position:sticky;top:0;z-index:10}
+.header-left{display:flex;align-items:center;gap:.5rem}
+.world-name{font-weight:600;font-size:1.05rem}
+.header-center{display:flex;align-items:center;gap:.7rem;flex:1;max-width:400px}
+.level-badge{background:#ffd700;color:#1a1a2e;font-weight:700;padding:.2rem .6rem;border-radius:999px;font-size:.85rem;white-space:nowrap}
+.xp-bar{flex:1;height:10px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;min-width:80px}
+.xp-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ffaa00);border-radius:999px;transition:width .4s}
+.points{font-size:.85rem;white-space:nowrap}
+.header-right{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.streak-badge{font-size:.85rem;color:#ff6b6b}
+.btn-shop,.btn-switch{padding:.35rem .8rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#e0e0e0;cursor:pointer;font-size:.85rem}
+.btn-shop:hover,.btn-switch:hover{background:rgba(255,255,255,.15)}
+/* 添加区 */
+.add-section{padding:1.2rem 1.5rem}
+.add-row{display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap}
+.add-row input{flex:1;min-width:200px;padding:.6rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0;font-size:.95rem;outline:none}
+.add-row input:focus{border-color:rgba(255,215,0,.5)}
+.btn-add{padding:.6rem 1.2rem;border-radius:10px;border:none;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#1a1a2e;font-weight:700;cursor:pointer;white-space:nowrap;font-size:.95rem}
+.btn-import{padding:.6rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#e0e0e0;cursor:pointer;white-space:nowrap;font-size:.95rem}
+.add-options{display:flex;gap:1.5rem;font-size:.85rem;color:#aaa;flex-wrap:wrap;margin-top:.5rem}
+.add-options input[type=number]{width:60px;padding:.2rem .4rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0;margin:0 .3rem}
+.add-options select{padding:.2rem .4rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#1a1a2e;color:#e0e0e0}
+/* 任务列表 */
+.task-list{padding:0 1.5rem 2rem;max-width:800px;margin:0 auto}
+.empty-state{text-align:center;padding:3rem 1rem;color:#888}
+.empty-state p:first-child{font-size:1.2rem;margin-bottom:.5rem}
+.task-card{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem;border-radius:12px;border:1px solid rgba(255,255,255,.12);margin-bottom:.6rem;transition:all .2s}
+.task-card:hover{border-color:rgba(255,255,255,.25)}
+.task-card.done{opacity:.5}
+.task-info{flex:1}
+.task-desc{font-size:1rem;font-weight:500;margin-bottom:.3rem}
+.task-meta{font-size:.78rem;color:#aaa}
+.task-actions{display:flex;gap:.4rem;align-items:center}
+.btn-complete{padding:.4rem .9rem;border-radius:8px;border:none;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;cursor:pointer;font-weight:600;font-size:.85rem}
+.btn-delete{background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.4;transition:opacity .2s}
+.btn-delete:hover{opacity:1}
+.section-title{margin:1.5rem 0 .8rem;font-size:1.1rem;color:#aaa}
+/* 弹窗 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:#1e1e3a;border-radius:16px;padding:1.5rem 2rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;color:#e0e0e0}
+.modal h3{margin-bottom:.5rem;color:#fff}
+.modal textarea{width:100%;padding:.8rem;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0;font-size:.9rem;resize:vertical;margin:.5rem 0;font-family:inherit;outline:none}
+.modal-btns{display:flex;gap:.5rem;margin-top:.8rem}
+.file-import{margin-top:1rem;font-size:.85rem;color:#aaa}
+/* 商店 */
+.shop-points{font-size:.9rem;margin-bottom:.8rem;color:#aaa}
+.shop-tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.shop-tabs button{padding:.35rem .8rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#aaa;cursor:pointer;font-size:.85rem;font-family:inherit}
+.shop-tabs button.active{background:rgba(255,215,0,.15);border-color:#ffd700;color:#ffd700}
+.shop-items{display:flex;flex-direction:column;gap:.5rem}
+.shop-item{display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.12);cursor:pointer;transition:all .2s;color:#e0e0e0;font-family:inherit}
+.shop-item:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.05)}
+.shop-item.owned{opacity:.5;cursor:default}
+.item-name{flex:1}
+.item-cost{color:#ffd700;font-weight:600;font-size:.9rem}
+.item-owned{color:#4caf50;font-size:.85rem}
+.btn-close{margin-top:1rem;padding:.5rem 1.5rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#e0e0e0;cursor:pointer;font-family:inherit;font-size:.95rem}
+/* Toast */
+.toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:.6rem 1.5rem;border-radius:10px;font-size:.9rem;z-index:200;animation:fadeInOut 2.5s ease forwards;pointer-events:none}
+@keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}85%{opacity:1}100%{opacity:0}}
+/* 页脚 */
+.footer{text-align:center;padding:1.5rem;font-size:.8rem;color:#666;border-top:1px solid rgba(255,255,255,.06)}
+.footer-note{margin-top:.3rem;font-size:.75rem;color:#555}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ============ 世界观配置 ============
+const WORLDS = {
+  fantasy: {
+    name: '中世纪奇幻', icon: '🏰',
+    bg: 'linear-gradient(135deg,#1a0533 0%,#2d1b69 50%,#11001c 100%)',
+    cardBg: 'rgba(45,27,105,0.85)', accent: '#ffd700',
+    monsters: ['巨龙','暗影兽','亡灵骑士','深渊恶魔','森林树人'],
+    places: ['幽暗森林','龙息火山','遗忘废墟','冰霜山脉','魔法学院'],
+    verbs: ['斩杀','封印','净化','征服','守护'],
+  },
+  cyberpunk: {
+    name: '赛博朋克', icon: '🌃',
+    bg: 'linear-gradient(135deg,#0a0e27 0%,#1a1a3e 50%,#0d0d2b 100%)',
+    cardBg: 'rgba(10,14,39,0.85)', accent: '#00ffff',
+    monsters: ['AI核心','黑客幽灵','机械暴龙','数据吞噬者','病毒君主'],
+    places: ['霓虹市区','地下数据港','天空城','废弃工厂','量子实验室'],
+    verbs: ['破解','摧毁','入侵','净化','夺取'],
+  },
+  modern: {
+    name: '现代冒险', icon: '🏙️',
+    bg: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',
+    cardBg: 'rgba(22,33,62,0.85)', accent: '#e94560',
+    monsters: ['拖延兽','焦虑影魔','deadline怪物','压力巨人'],
+    places: ['城市咖啡馆','深夜办公室','图书馆','健身房','家中书房'],
+    verbs: ['击败','征服','完成','解锁','通关'],
+  },
+};
+
+// ============ 商店商品 ============
+const SHOP_ITEMS = [
+  { id:'skin-fantasy-dragon', name:'龙巢主题', world:'fantasy', cost:500, type:'theme' },
+  { id:'skin-fantasy-magic', name:'魔法学院主题', world:'fantasy', cost:2000, type:'theme' },
+  { id:'skin-fantasy-holy', name:'圣域主题', world:'fantasy', cost:5000, type:'theme' },
+  { id:'skin-cyber-neon', name:'霓虹城主题', world:'cyberpunk', cost:500, type:'theme' },
+  { id:'skin-cyber-matrix', name:'矩阵主题', world:'cyberpunk', cost:2000, type:'theme' },
+  { id:'skin-cyber-ai', name:'AI核心主题', world:'cyberpunk', cost:5000, type:'theme' },
+  { id:'skin-mod-urban', name:'都市夜色主题', world:'modern', cost:500, type:'theme' },
+  { id:'skin-mod-cafe', name:'咖啡馆主题', world:'modern', cost:2000, type:'theme' },
+  { id:'skin-mod-sunset', name:'日落大道主题', world:'modern', cost:5000, type:'theme' },
+  { id:'char-knight', name:'骑士皮肤', world:'fantasy', cost:300, type:'char' },
+  { id:'char-mage', name:'法师皮肤', world:'fantasy', cost:800, type:'char' },
+  { id:'char-hacker', name:'黑客皮肤', world:'cyberpunk', cost:500, type:'char' },
+  { id:'char-robot', name:'机器人皮肤', world:'cyberpunk', cost:1500, type:'char' },
+  { id:'char-office', name:'上班族皮肤', world:'modern', cost:300, type:'char' },
+  { id:'char-athlete', name:'运动员皮肤', world:'modern', cost:1000, type:'char' },
+  { id:'prop-double', name:'双倍积分卡（1小时）', world:'all', cost:1000, type:'prop' },
+  { id:'prop-freeze', name:'连击冻结卡', world:'all', cost:800, type:'prop' },
+];
+
+// ============ 全局状态 ============
+let state = {
+  world: localStorage.getItem('rpg-world') || '',
+  todos: JSON.parse(localStorage.getItem('rpg-todos') || '[]'),
+  points: Number(localStorage.getItem('rpg-points') || 0),
+  level: Number(localStorage.getItem('rpg-level') || 1),
+  streak: Number(localStorage.getItem('rpg-streak') || 0),
+  lastDate: localStorage.getItem('rpg-lastDate') || '',
+  skins: JSON.parse(localStorage.getItem('rpg-skins') || '[]'),
+  activeSkin: localStorage.getItem('rpg-activeSkin') || '',
+  input: '',
+  minutes: 30,
+  difficulty: 1.0,
+  shopOpen: false,
+  shopTab: 'theme',
+  showImport: false,
+  importText: '',
+  toast: '',
+  toastTimer: null,
+};
+
+// ============ 工具函数 ============
+function save(key, value) {
+  if (key === 'todos') localStorage.setItem('rpg-todos', JSON.stringify(value));
+  else if (key === 'points') localStorage.setItem('rpg-points', value);
+  else if (key === 'level') localStorage.setItem('rpg-level', value);
+  else if (key === 'streak') localStorage.setItem('rpg-streak', value);
+  else if (key === 'lastDate') localStorage.setItem('rpg-lastDate', value);
+  else if (key === 'skins') localStorage.setItem('rpg-skins', JSON.stringify(value));
+  else if (key === 'activeSkin') localStorage.setItem('rpg-activeSkin', value);
+  else if (key === 'world') localStorage.setItem('rpg-world', value);
+}
+
+function showToast(msg) {
+  if (state.toastTimer) clearTimeout(state.toastTimer);
+  state.toast = msg;
+  state.toastTimer = setTimeout(() => { state.toast = ''; render(); }, 2500);
+  render();
+}
+
+function mockGenerate(todo, worldKey) {
+  const w = WORLDS[worldKey];
+  const monster = w.monsters[Math.floor(Math.random() * w.monsters.length)];
+  const place = w.places[Math.floor(Math.random() * w.places.length)];
+  const verb = w.verbs[Math.floor(Math.random() * w.verbs.length)];
+  const short = todo.length > 8 ? todo.slice(0,8) + '…' : todo;
+  const pts = Math.round(state.minutes * state.difficulty);
+  return { desc: verb + '【' + short + '】— 在【' + place + '】击败【' + monster + '】，奖励' + pts + '积分', points: pts };
+}
+
+// ============ 每日登录奖励 ============
+(function checkDailyLogin() {
+  const today = new Date().toISOString().slice(0,10);
+  const lastLogin = localStorage.getItem('rpg-lastLogin');
+  if (lastLogin !== today) {
+    state.points += 50;
+    save('points', state.points);
+    localStorage.setItem('rpg-lastLogin', today);
+    // 延迟显示toast，等首次render后
+    setTimeout(() => showToast('🎁 每日登录 +50 积分！'), 100);
+  }
+})();
+
+// ============ 渲染函数 ============
+function render() {
+  const el = document.getElementById('app');
+  if (!state.world) {
+    el.innerHTML = renderWorldSelect();
+  } else {
+    el.innerHTML = renderMain();
+    bindMainEvents();
+  }
+}
+
+function renderWorldSelect() {
+  let cards = '';
+  Object.entries(WORLDS).forEach(function(entry) {
+    const key = entry[0];
+    const w = entry[1];
+    cards += '<div class="world-card" data-world="' + key + '" style="border-color:' + w.accent + '">' +
+      '<span class="world-icon">' + w.icon + '</span>' +
+      '<h2>' + w.name + '</h2>' +
+      '<p>怪物：' + w.monsters.slice(0,3).join(' / ') + '</p>' +
+      '<p>场景：' + w.places.slice(0,3).join(' / ') + '</p>' +
+      '</div>';
+  });
+  return '<div class="world-select">' +
+    '<h1>⚔️ RPG 待办冒险</h1>' +
+    '<p class="subtitle">选择你的冒险世界观</p>' +
+    '<div class="world-cards">' + cards + '</div>' +
+    '</div>';
+}
+
+function renderMain() {
+  const w = WORLDS[state.world];
+  const bg = w ? w.bg : WORLDS.fantasy.bg;
+  const cardBg = w ? w.cardBg : WORLDS.fantasy.cardBg;
+  const accent = w ? w.accent : WORLDS.fantasy.accent;
+  const xpPct = ((state.points % 1000) / 10) + '%';
+  const activeTodos = state.todos.filter(function(t) { return !t.done; });
+  const doneTodos = state.todos.filter(function(t) { return t.done; });
+
+  let toastHtml = '';
+  if (state.toast) {
+    toastHtml = '<div class="toast">' + state.toast + '</div>';
+  }
+
+  let taskCards = '';
+  if (activeTodos.length === 0) {
+    taskCards = '<div class="empty-state"><p>🎮 暂无进行中的任务</p><p>输入待办事项，生成你的RPG冒险任务吧！</p></div>';
+  }
+  activeTodos.forEach(function(t) {
+    taskCards += '<div class="task-card" style="background:' + cardBg + ';border-color:' + accent + '">' +
+      '<div class="task-info">' +
+        '<p class="task-desc">' + escHtml(t.desc) + '</p>' +
+        '<p class="task-meta">原始：「' + escHtml(t.text) + '」 | ' + t.minutes + '分钟 | 难度×' + t.difficulty + ' | 奖励 ' + t.points + ' XP</p>' +
+        '</div>' +
+      '<div class="task-actions">' +
+        '<button class="btn-complete" data-action="complete" data-id="' + t.id + '">✅ 完成</button>' +
+        '<button class="btn-delete" data-action="delete" data-id="' + t.id + '">🗑️</button>' +
+        '</div>' +
+      '</div>';
+  });
+
+  let doneCards = '';
+  if (doneTodos.length > 0) {
+    doneCards = '<h2 class="section-title">🎉 已完成</h2>';
+    doneTodos.forEach(function(t) {
+      doneCards += '<div class="task-card done" style="background:' + cardBg + '">' +
+        '<div class="task-info">' +
+          '<p class="task-desc" style="opacity:.6">' + escHtml(t.desc) + '</p>' +
+          '<p class="task-meta" style="opacity:.4">已完成 +' + t.points + ' XP</p>' +
+          '</div>' +
+        '<button class="btn-delete" data-action="delete" data-id="' + t.id + '">🗑️</button>' +
+        '</div>';
+    });
+  }
+
+  // 商店弹窗
+  let shopHtml = '';
+  if (state.shopOpen) {
+    let tabButtons = '';
+    ['theme','char','prop'].forEach(function(tab) {
+      const label = tab === 'theme' ? '🎨 主题' : tab === 'char' ? '👤 角色' : '⚡ 道具';
+      const cls = state.shopTab === tab ? 'active' : '';
+      tabButtons += '<button class="' + cls + '" data-shoptab="' + tab + '">' + label + '</button>';
+    });
+    let items = '';
+    SHOP_ITEMS.filter(function(item) {
+      if (state.shopTab === 'theme') return item.type === 'theme';
+      if (state.shopTab === 'char') return item.type === 'char';
+      return item.type === 'prop';
+    }).forEach(function(item) {
+      const owned = state.skins.indexOf(item.id) >= 0;
+      const borderC = (WORLDS[item.world] && WORLDS[item.world].accent) || accent;
+      items += '<div class="shop-item' + (owned ? ' owned' : '') + '" data-item-id="' + item.id + '" style="border-color:' + borderC + '">' +
+        '<span class="item-name">' + item.name + '</span>' +
+        '<span class="item-cost">' + item.cost + ' XP</span>' +
+        (owned ? '<span class="item-owned">✅ 已拥有</span>' : '') +
+        '</div>';
+    });
+    shopHtml = '<div class="modal-overlay" id="shop-overlay">' +
+      '<div class="modal shop-modal">' +
+        '<h3>🛒 兑换商店</h3>' +
+        '<p class="shop-points">当前积分：<strong>' + state.points + '</strong> XP</p>' +
+        '<div class="shop-tabs">' + tabButtons + '</div>' +
+        '<div class="shop-items">' + items + '</div>' +
+        '<button class="btn-close" data-action="close-shop">关闭</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // 导入弹窗
+  let importHtml = '';
+  if (state.showImport) {
+    importHtml = '<div class="modal-overlay" id="import-overlay">' +
+      '<div class="modal">' +
+        '<h3>📥 批量导入待办</h3>' +
+        '<p>每行一个待办事项</p>' +
+        '<textarea id="import-textarea" placeholder="买菜\n写完报告\n锻炼30分钟" rows="8">' + escHtml(state.importText) + '</textarea>' +
+        '<div class="modal-btns">' +
+          '<button class="btn-add" data-action="confirm-import">确认导入</button>' +
+          '<button data-action="cancel-import">取消</button>' +
+          '</div>' +
+        '<div class="file-import">' +
+          '<label>或上传 TXT/CSV 文件：' +
+          '<input type="file" id="file-input" accept=".txt,.csv">' +
+          '</label>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  return '<div style="background:' + bg + ',#1a1a2e;min-height:100vh">' + toastHtml +
+    '<header class="header">' +
+      '<div class="header-left">' +
+        '<span style="font-size:1.3rem">' + (w ? w.icon : '') + '</span>' +
+        '<span class="world-name">' + (w ? w.name : '') + '</span>' +
+        '</div>' +
+      '<div class="header-center">' +
+        '<span class="level-badge">Lv.' + state.level + '</span>' +
+        '<div class="xp-bar"><div class="xp-fill" style="width:' + xpPct + '"></div></div>' +
+        '<span class="points">' + state.points + ' XP</span>' +
+        '</div>' +
+      '<div class="header-right">' +
+        '<span class="streak-badge">🔥 连击 x' + state.streak + '</span>' +
+        '<button class="btn-shop" data-action="open-shop">🛒 商店</button>' +
+        '<button class="btn-switch" data-action="switch-world">🔄 换世界观</button>' +
+        '</div>' +
+      '</header>' +
+    '<section class="add-section">' +
+      '<div class="add-row">' +
+        '<input type="text" id="todo-input" value="' + escAttr(state.input) + '" placeholder="输入待办事项，按回车生成RPG任务…">' +
+        '<button class="btn-add" data-action="add-todo">生成任务 ⚔️</button>' +
+        '<button class="btn-import" data-action="open-import">📥 导入</button>' +
+        '</div>' +
+      '<div class="add-options">' +
+        '<label>预估耗时：<input type="number" id="minutes-input" value="' + state.minutes + '" min="1"><span>分钟</span></label>' +
+        '<label>难度系数：' +
+          '<select id="difficulty-select">' +
+            '<option value="0.5"' + (state.difficulty === 0.5 ? ' selected' : '') + '>简单 (×0.5)</option>' +
+            '<option value="1.0"' + (state.difficulty === 1.0 ? ' selected' : '') + '>普通 (×1.0)</option>' +
+            '<option value="1.5"' + (state.difficulty === 1.5 ? ' selected' : '') + '>困难 (×1.5)</option>' +
+            '<option value="2.0"' + (state.difficulty === 2.0 ? ' selected' : '') + '>极难 (×2.0)</option>' +
+            '</select>' +
+          '</label>' +
+        '</div>' +
+      '</section>' +
+    importHtml +
+    shopHtml +
+    '<main class="task-list">' + taskCards + doneCards + '</main>' +
+    '<footer class="footer">' +
+      '<p>等级 Lv.' + state.level + ' | 积分 ' + state.points + ' XP | 连击 x' + state.streak + ' | 已完成 ' + doneTodos.length + ' 个任务</p>' +
+      '<p class="footer-note">积分永不重置 | 每日登录 +50 XP</p>' +
+      '</footer>' +
+    '</div>';
+}
+
+// ============ 事件绑定 ============
+function bindMainEvents() {
+  // 世界观卡片
+  document.querySelectorAll('.world-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      state.world = this.getAttribute('data-world');
+      save('world', state.world);
+      render();
+    });
+  });
+
+  // 输入框回车
+  var input = document.getElementById('todo-input');
+  if (input) {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') addTodo();
+    });
+    input.addEventListener('input', function() { state.input = this.value; });
+  }
+
+  // 分钟/难度
+  var minInput = document.getElementById('minutes-input');
+  if (minInput) {
+    minInput.addEventListener('change', function() { state.minutes = Number(this.value) || 30; });
+  }
+  var diffSelect = document.getElementById('difficulty-select');
+  if (diffSelect) {
+    diffSelect.addEventListener('change', function() { state.difficulty = Number(this.value); });
+  }
+
+  // 按钮事件委托
+  document.querySelectorAll('[data-action]').forEach(function(btn) {
+    btn.addEventListener('click', handleAction);
+  });
+
+  // 商店遮罩点击关闭
+  var shopOverlay = document.getElementById('shop-overlay');
+  if (shopOverlay) {
+    shopOverlay.addEventListener('click', function(e) {
+      if (e.target === this) { state.shopOpen = false; render(); }
+    });
+    shopOverlay.querySelector('.modal').addEventListener('click', function(e) { e.stopPropagation(); });
+  }
+
+  // 导入遮罩点击关闭
+  var importOverlay = document.getElementById('import-overlay');
+  if (importOverlay) {
+    importOverlay.addEventListener('click', function(e) {
+      if (e.target === this) { state.showImport = false; render(); }
+    });
+    importOverlay.querySelector('.modal').addEventListener('click', function(e) { e.stopPropagation(); });
+  }
+
+  // 导入文本区
+  var ta = document.getElementById('import-textarea');
+  if (ta) {
+    ta.addEventListener('input', function() { state.importText = this.value; });
+  }
+
+  // 文件上传
+  var fi = document.getElementById('file-input');
+  if (fi) {
+    fi.addEventListener('change', handleFileImport);
+  }
+}
+
+function handleAction(e) {
+  var action = this.getAttribute('data-action');
+  if (action === 'add-todo') addTodo();
+  else if (action === 'open-import') { state.showImport = true; render(); }
+  else if (action === 'confirm-import') confirmBulkImport();
+  else if (action === 'cancel-import') { state.showImport = false; render(); }
+  else if (action === 'open-shop') { state.shopOpen = true; render(); }
+  else if (action === 'close-shop') { state.shopOpen = false; render(); }
+  else if (action === 'switch-world') { state.world = ''; render(); }
+  else if (action === 'complete') { completeTask(Number(this.getAttribute('data-id'))); }
+  else if (action === 'delete') { deleteTask(Number(this.getAttribute('data-id'))); }
+  else if (action === 'shop-tab') {
+    state.shopTab = this.getAttribute('data-shoptab');
+    render();
+  }
+}
+
+// ============ 核心逻辑 ============
+function addTodo() {
+  var text = state.input.trim();
+  if (!text) return;
+  var result = mockGenerate(text, state.world);
+  var task = {
+    id: Date.now() + Math.random(),
+    text: text,
+    desc: result.desc,
+    points: result.points,
+    difficulty: state.difficulty,
+    minutes: state.minutes,
+    done: false,
+    created: new Date().toISOString(),
+  };
+  state.todos.unshift(task);
+  save('todos', state.todos);
+  state.input = '';
+  var inputEl = document.getElementById('todo-input');
+  if (inputEl) inputEl.value = '';
+  showToast('✅ 任务已生成！');
+  render();
+}
+
+function handleFileImport(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var lines = ev.target.result.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+    var newTasks = [];
+    lines.forEach(function(line) {
+      var r = mockGenerate(line, state.world);
+      newTasks.push({
+        id: Date.now() + Math.random(),
+        text: line,
+        desc: r.desc,
+        points: r.points,
+        difficulty: state.difficulty,
+        minutes: state.minutes,
+        done: false,
+        created: new Date().toISOString(),
+      });
+    });
+    state.todos = newTasks.concat(state.todos);
+    save('todos', state.todos);
+    showToast('✅ 导入了 ' + newTasks.length + ' 个任务');
+    render();
+  };
+  reader.readAsText(file);
+}
+
+function confirmBulkImport() {
+  var lines = state.importText.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+  if (lines.length === 0) return;
+  var newTasks = [];
+  lines.forEach(function(line) {
+    var r = mockGenerate(line, state.world);
+    newTasks.push({
+      id: Date.now() + Math.random(),
+      text: line,
+      desc: r.desc,
+      points: r.points,
+      difficulty: state.difficulty,
+      minutes: state.minutes,
+      done: false,
+      created: new Date().toISOString(),
+    });
+  });
+  state.todos = newTasks.concat(state.todos);
+  save('todos', state.todos);
+  state.importText = '';
+  state.showImport = false;
+  showToast('✅ 导入了 ' + newTasks.length + ' 个任务');
+  render();
+}
+
+function completeTask(id) {
+  var today = new Date().toISOString().slice(0,10);
+  var newStreak = state.streak;
+  if (state.lastDate === today) {
+    newStreak = state.streak + 1;
+  } else {
+    var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+    newStreak = state.lastDate === yesterday ? state.streak + 1 : 1;
+  }
+  var streakBonus = newStreak >= 3 ? 1.2 : 1.0;
+  var finalPoints = 0;
+
+  state.todos = state.todos.map(function(t) {
+    if (t.id !== id || t.done) return t;
+    finalPoints = Math.round(t.points * streakBonus);
+    state.points += finalPoints;
+    state.streak = newStreak;
+    state.lastDate = today;
+    save('points', state.points);
+    save('streak', state.streak);
+    save('lastDate', state.lastDate);
+    showToast('🎉 +' + finalPoints + ' 积分！连击 x' + newStreak);
+    return Object.assign({}, t, { done: true, completedAt: new Date().toISOString() });
+  });
+
+  state.level = Math.floor(state.points / 1000) + 1;
+  save('todos', state.todos);
+  save('level', state.level);
+  render();
+}
+
+function deleteTask(id) {
+  state.todos = state.todos.filter(function(t) { return t.id !== id; });
+  save('todos', state.todos);
+  render();
+}
+
+function buyItem(itemId) {
+  var item = null;
+  for (var i = 0; i < SHOP_ITEMS.length; i++) {
+    if (SHOP_ITEMS[i].id === itemId) { item = SHOP_ITEMS[i]; break; }
+  }
+  if (!item) return;
+  if (state.points < item.cost) { showToast('⚠️ 积分不足！'); return; }
+  if (state.skins.indexOf(item.id) >= 0) { showToast('⚠️ 已拥有！'); return; }
+  state.points -= item.cost;
+  state.skins.push(item.id);
+  save('points', state.points);
+  save('skins', state.skins);
+  showToast('🎉 获得【' + item.name + '】！');
+  render();
+}
+
+// ============ HTML 转义 ============
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============ 商店物品点击 ============
+document.addEventListener('click', function(e) {
+  // 商店物品点击
+  var shopItem = e.target.closest('.shop-item');
+  if (shopItem && !shopItem.classList.contains('owned')) {
+    buyItem(shopItem.getAttribute('data-item-id'));
+    return;
+  }
+  // 商店tab点击
+  var tabBtn = e.target.closest('[data-shoptab]');
+  if (tabBtn) {
+    state.shopTab = tabBtn.getAttribute('data-shoptab');
+    render();
+    return;
+  }
+});
+
+// ============ 首次渲染 ============
+render();
+</script>
+</body>
+</html>
