@@ -438,29 +438,6 @@ function bindMainEvents() {
     diffSelect.addEventListener('change', function() { state.difficulty = Number(this.value); });
   }
 
-  // 按钮事件委托
-  document.querySelectorAll('[data-action]').forEach(function(btn) {
-    btn.addEventListener('click', handleAction);
-  });
-
-  // 商店遮罩点击关闭
-  var shopOverlay = document.getElementById('shop-overlay');
-  if (shopOverlay) {
-    shopOverlay.addEventListener('click', function(e) {
-      if (e.target === this) { state.shopOpen = false; render(); }
-    });
-    shopOverlay.querySelector('.modal').addEventListener('click', function(e) { e.stopPropagation(); });
-  }
-
-  // 导入遮罩点击关闭
-  var importOverlay = document.getElementById('import-overlay');
-  if (importOverlay) {
-    importOverlay.addEventListener('click', function(e) {
-      if (e.target === this) { state.showImport = false; render(); }
-    });
-    importOverlay.querySelector('.modal').addEventListener('click', function(e) { e.stopPropagation(); });
-  }
-
   // 导入文本区
   var ta = document.getElementById('import-textarea');
   if (ta) {
@@ -471,34 +448,6 @@ function bindMainEvents() {
   var fi = document.getElementById('file-input');
   if (fi) {
     fi.addEventListener('change', handleFileImport);
-  }
-}
-
-function handleAction(e) {
-  var action = this.getAttribute('data-action');
-  if (action === 'add-todo') addTodo();
-  else if (action === 'open-import') { state.showImport = true; render(); }
-  else if (action === 'confirm-import') confirmBulkImport();
-  else if (action === 'cancel-import') { state.showImport = false; render(); }
-  else if (action === 'open-shop') { state.shopOpen = true; render(); }
-  else if (action === 'close-shop') { state.shopOpen = false; render(); }
-  else if (action === 'switch-world') { state.world = ''; render(); }
-  else if (action === 'complete') { completeTask(Number(this.getAttribute('data-id'))); }
-  else if (action === 'delete') { deleteTask(Number(this.getAttribute('data-id'))); }
-  else if (action === 'shop-tab') {
-    state.shopTab = this.getAttribute('data-shoptab');
-    render();
-  }
-  else if (action === 'use-skin') {
-    var itemId = this.getAttribute('data-item-id');
-    state.activeSkin = itemId;
-    save('activeSkin', itemId);
-    showToast('🎨 已切换主题！');
-    render();
-  }
-  else if (action === 'buy-item') {
-    var itemId = this.getAttribute('data-item-id');
-    buyItem(itemId);
   }
 }
 
@@ -660,22 +609,53 @@ function escAttr(str) {
   return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ============ 全局点击委托（仅处理无data-action的元素） ============
+// ============ 全局点击委托（唯一入口，不需要重新绑定） ============
 document.addEventListener('click', function(e) {
-  // 世界观卡片点击（无data-action，由这里处理）
+  // 1. [data-action] 元素（按钮、操作）
+  var actionEl = e.target.closest('[data-action]');
+  if (actionEl) {
+    var action = actionEl.getAttribute('data-action');
+    if (action === 'add-todo') { addTodo(); return; }
+    if (action === 'open-import') { state.showImport = true; render(); return; }
+    if (action === 'confirm-import') { confirmBulkImport(); return; }
+    if (action === 'cancel-import') { state.showImport = false; render(); return; }
+    if (action === 'open-shop') { state.shopOpen = true; render(); return; }
+    if (action === 'close-shop') { state.shopOpen = false; render(); return; }
+    if (action === 'switch-world') { state.world = ''; render(); return; }
+    if (action === 'complete') { completeTask(Number(actionEl.getAttribute('data-id'))); return; }
+    if (action === 'delete') { deleteTask(Number(actionEl.getAttribute('data-id'))); return; }
+    if (action === 'use-skin') {
+      var uId = actionEl.getAttribute('data-item-id');
+      state.activeSkin = uId; save('activeSkin', uId);
+      showToast('🎨 已切换主题！'); render(); return;
+    }
+    if (action === 'buy-item') {
+      var bId = actionEl.getAttribute('data-item-id');
+      buyItem(bId); return;
+    }
+    return;
+  }
+  // 2. 世界观卡片
   var worldCard = e.target.closest('.world-card');
   if (worldCard) {
     state.world = worldCard.getAttribute('data-world');
-    save('world', state.world);
-    render();
-    return;
+    save('world', state.world); render(); return;
   }
-  // 商店tab点击（无data-action，由这里处理）
+  // 3. 商店 tab
   var tabBtn = e.target.closest('[data-shoptab]');
   if (tabBtn) {
     state.shopTab = tabBtn.getAttribute('data-shoptab');
-    render();
-    return;
+    render(); return;
+  }
+  // 4. 商店遮罩点击关闭（点遮罩本身，不点 modal 内部）
+  var shopOverlay = document.getElementById('shop-overlay');
+  if (shopOverlay && shopOverlay.contains(e.target) && !shopOverlay.querySelector('.modal').contains(e.target)) {
+    state.shopOpen = false; render(); return;
+  }
+  // 5. 导入遮罩点击关闭
+  var importOverlay = document.getElementById('import-overlay');
+  if (importOverlay && importOverlay.contains(e.target) && !importOverlay.querySelector('.modal').contains(e.target)) {
+    state.showImport = false; render(); return;
   }
 });
 
