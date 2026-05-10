@@ -138,6 +138,19 @@ const SHOP_ITEMS = [
   { id:'prop-freeze', name:'连击冻结卡', world:'all', cost:800, type:'prop' },
 ];
 
+// ============ 皮肤视觉配置 ============
+const SKIN_CONFIG = {
+  'skin-fantasy-dragon':  { bg:'linear-gradient(135deg,#2d1b05,#4a2800,#1a0e00)', cardBg:'rgba(74,40,0,.85)', accent:'#ff8c00' },
+  'skin-fantasy-magic':   { bg:'linear-gradient(135deg,#0a1628,#162d5a,#0a1628)', cardBg:'rgba(22,45,90,.85)', accent:'#4fc3f7' },
+  'skin-fantasy-holy':    { bg:'linear-gradient(135deg,#1a1a0a,#3d3d1a,#0a0a05)', cardBg:'rgba(61,61,26,.85)', accent:'#ffeb3b' },
+  'skin-cyber-neon':      { bg:'linear-gradient(135deg,#0a0e27,#1a0040,#0d0d2b)', cardBg:'rgba(26,0,64,.85)', accent:'#ff00ff' },
+  'skin-cyber-matrix':    { bg:'linear-gradient(135deg,#000a00,#002200,#000a00)', cardBg:'rgba(0,34,0,.85)', accent:'#00ff41' },
+  'skin-cyber-ai':        { bg:'linear-gradient(135deg,#1a0a00,#3d1a00,#0a0500)', cardBg:'rgba(61,26,0,.85)', accent:'#ff6600' },
+  'skin-mod-urban':       { bg:'linear-gradient(135deg,#1a1a1a,#2d2d2d,#0a0a0a)', cardBg:'rgba(45,45,45,.85)', accent:'#b0b0b0' },
+  'skin-mod-cafe':        { bg:'linear-gradient(135deg,#1a0f05,#3d1f0a,#0a0805)', cardBg:'rgba(61,31,10,.85)', accent:'#d4a574' },
+  'skin-mod-sunset':      { bg:'linear-gradient(135deg,#1a0505,#3d0a0a,#0a0303)', cardBg:'rgba(61,10,10,.85)', accent:'#ff5252' },
+};
+
 // ============ 全局状态 ============
 let state = {
   world: localStorage.getItem('rpg-world') || '',
@@ -233,9 +246,16 @@ function renderWorldSelect() {
 
 function renderMain() {
   const w = WORLDS[state.world];
-  const bg = w ? w.bg : WORLDS.fantasy.bg;
-  const cardBg = w ? w.cardBg : WORLDS.fantasy.cardBg;
-  const accent = w ? w.accent : WORLDS.fantasy.accent;
+  let bg = w ? w.bg : WORLDS.fantasy.bg;
+  let cardBg = w ? w.cardBg : WORLDS.fantasy.cardBg;
+  let accent = w ? w.accent : WORLDS.fantasy.accent;
+  // 如果有激活皮肤，覆盖样式
+  if (state.activeSkin && SKIN_CONFIG[state.activeSkin]) {
+    var sc = SKIN_CONFIG[state.activeSkin];
+    bg = sc.bg;
+    cardBg = sc.cardBg;
+    accent = sc.accent;
+  }
   const xpPct = ((state.points % 1000) / 10) + '%';
   const activeTodos = state.todos.filter(function(t) { return !t.done; });
   const doneTodos = state.todos.filter(function(t) { return t.done; });
@@ -292,11 +312,22 @@ function renderMain() {
       return item.type === 'prop';
     }).forEach(function(item) {
       const owned = state.skins.indexOf(item.id) >= 0;
-      const borderC = (WORLDS[item.world] && WORLDS[item.world].accent) || accent;
+      const isActive = state.activeSkin === item.id;
+      const borderC = (WORLDS[item.world] && WORLDS[item.world].accent) || '#ffd700';
+      let btnHtml = '';
+      if (owned && item.type === 'theme') {
+        if (isActive) {
+          btnHtml = '<span class="item-owned">✅ 使用中</span>';
+        } else {
+          btnHtml = '<button class="btn-use-skin" data-item-id="' + item.id + '" style="background:' + borderC + ';color:#000;border:none;padding:.3rem .7rem;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600">使用</button>';
+        }
+      } else if (owned) {
+        btnHtml = '<span class="item-owned">✅ 已拥有</span>';
+      }
       items += '<div class="shop-item' + (owned ? ' owned' : '') + '" data-item-id="' + item.id + '" style="border-color:' + borderC + '">' +
         '<span class="item-name">' + item.name + '</span>' +
         '<span class="item-cost">' + item.cost + ' XP</span>' +
-        (owned ? '<span class="item-owned">✅ 已拥有</span>' : '') +
+        btnHtml +
         '</div>';
     });
     shopHtml = '<div class="modal-overlay" id="shop-overlay">' +
@@ -580,6 +611,25 @@ function buyItem(itemId) {
   render();
 }
 
+// ============ 应用皮肤 ============
+function applySkin() {
+  if (!state.activeSkin || !SKIN_CONFIG[state.activeSkin]) return;
+  var cfg = SKIN_CONFIG[state.activeSkin];
+  // 动态更新页面根元素背景
+  document.body.style.background = cfg.bg + ',#1a1a2e';
+  // 更新 header 强调色
+  var styleEl = document.getElementById('skin-dynamic-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'skin-dynamic-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent =
+    '.btn-add{background:linear-gradient(135deg,' + cfg.accent + ',' + cfg.accent + '88)!important}' +
+    '.xp-fill{background:linear-gradient(90deg,' + cfg.accent + ',' + cfg.accent + '88)!important}' +
+    '.level-badge{background:' + cfg.accent + '!important}';
+}
+
 // ============ HTML 转义 ============
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -590,6 +640,16 @@ function escAttr(str) {
 
 // ============ 全局点击委托 ============
 document.addEventListener('click', function(e) {
+  // 使用皮肤
+  var useBtn = e.target.closest('.btn-use-skin');
+  if (useBtn) {
+    var itemId = useBtn.getAttribute('data-item-id');
+    state.activeSkin = itemId;
+    save('activeSkin', itemId);
+    applySkin();
+    showToast('🎨 已切换主题！');
+    return;
+  }
   // 世界观卡片点击
   var worldCard = e.target.closest('.world-card');
   if (worldCard) {
@@ -615,6 +675,7 @@ document.addEventListener('click', function(e) {
 
 // ============ 首次渲染 ============
 render();
+applySkin();
 </script>
 </body>
 </html>
