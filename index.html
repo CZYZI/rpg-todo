@@ -363,8 +363,12 @@ function renderMain() {
       '</div>';
   }
 
-  // 如果有激活皮肤，主背景不在这里写，由 applySkin() 控制
-  var mainBg = (state.activeSkin && SKIN_CONFIG[state.activeSkin]) ? 'transparent' : bg + ',#1a1a2e';
+  var mainBg;
+  if (state.activeSkin && SKIN_CONFIG[state.activeSkin]) {
+    mainBg = SKIN_CONFIG[state.activeSkin].bg;
+  } else {
+    mainBg = bg + ', #1a1a2e';
+  }
   return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
     '<header class="header">' +
       '<div class="header-left">' +
@@ -623,15 +627,12 @@ function buyItem(itemId) {
 
 // ============ 应用皮肤 ============
 function applySkin() {
-  var innerEl = document.getElementById('main-content');
   if (!state.activeSkin || !SKIN_CONFIG[state.activeSkin]) {
-    if (innerEl) innerEl.style.background = '';
     var oldStyle = document.getElementById('skin-dynamic-style');
     if (oldStyle) oldStyle.remove();
     return;
   }
   var cfg = SKIN_CONFIG[state.activeSkin];
-  if (innerEl) innerEl.style.background = cfg.bg + ',#1a1a2e';
   var styleEl = document.getElementById('skin-dynamic-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
