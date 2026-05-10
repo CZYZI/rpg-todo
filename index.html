@@ -319,7 +319,7 @@ function renderMain() {
         if (isActive) {
           btnHtml = '<span class="item-owned">✅ 使用中</span>';
         } else {
-          btnHtml = '<button class="btn-use-skin" data-item-id="' + item.id + '" style="background:' + borderC + ';color:#000;border:none;padding:.3rem .7rem;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600">使用</button>';
+          btnHtml = '<button class="btn-use-skin" data-action="use-skin" data-item-id="' + item.id + '" style="background:' + borderC + ';color:#000;border:none;padding:.3rem .7rem;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">使用</button>';
         }
       } else if (owned) {
         btnHtml = '<span class="item-owned">✅ 已拥有</span>';
@@ -477,6 +477,14 @@ function handleAction(e) {
   else if (action === 'delete') { deleteTask(Number(this.getAttribute('data-id'))); }
   else if (action === 'shop-tab') {
     state.shopTab = this.getAttribute('data-shoptab');
+    render();
+  }
+  else if (action === 'use-skin') {
+    var itemId = this.getAttribute('data-item-id');
+    state.activeSkin = itemId;
+    save('activeSkin', itemId);
+    applySkin();
+    showToast('🎨 已切换主题！');
     render();
   }
 }
@@ -638,19 +646,9 @@ function escAttr(str) {
   return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ============ 全局点击委托 ============
+// ============ 全局点击委托（仅处理无data-action的元素） ============
 document.addEventListener('click', function(e) {
-  // 使用皮肤
-  var useBtn = e.target.closest('.btn-use-skin');
-  if (useBtn) {
-    var itemId = useBtn.getAttribute('data-item-id');
-    state.activeSkin = itemId;
-    save('activeSkin', itemId);
-    applySkin();
-    showToast('🎨 已切换主题！');
-    return;
-  }
-  // 世界观卡片点击
+  // 世界观卡片点击（无data-action，由这里处理）
   var worldCard = e.target.closest('.world-card');
   if (worldCard) {
     state.world = worldCard.getAttribute('data-world');
@@ -658,13 +656,7 @@ document.addEventListener('click', function(e) {
     render();
     return;
   }
-  // 商店物品点击
-  var shopItem = e.target.closest('.shop-item');
-  if (shopItem && !shopItem.classList.contains('owned')) {
-    buyItem(shopItem.getAttribute('data-item-id'));
-    return;
-  }
-  // 商店tab点击
+  // 商店tab点击（无data-action，由这里处理）
   var tabBtn = e.target.closest('[data-shoptab]');
   if (tabBtn) {
     state.shopTab = tabBtn.getAttribute('data-shoptab');
