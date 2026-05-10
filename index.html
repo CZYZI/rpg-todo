@@ -159,7 +159,14 @@ let state = {
   level: Number(localStorage.getItem('rpg-level') || 1),
   streak: Number(localStorage.getItem('rpg-streak') || 0),
   lastDate: localStorage.getItem('rpg-lastDate') || '',
-  skins: JSON.parse(localStorage.getItem('rpg-skins') || '[]'),
+  skins: (function() {
+    try {
+      var val = JSON.parse(localStorage.getItem('rpg-skins') || '[]');
+      return Array.isArray(val) ? val : [];
+    } catch(e) {
+      return [];
+    }
+  })(),
   activeSkin: localStorage.getItem('rpg-activeSkin') || '',
   input: '',
   minutes: 30,
@@ -246,6 +253,9 @@ function renderWorldSelect() {
 }
 
 function renderMain() {
+  // 确保关键状态是正确类型
+  if (!Array.isArray(state.skins)) state.skins = [];
+  
   const w = WORLDS[state.world];
   let bg = w ? w.bg : WORLDS.fantasy.bg;
   let cardBg = w ? w.cardBg : WORLDS.fantasy.cardBg;
@@ -570,15 +580,23 @@ function buyItem(itemId) {
   for (var i = 0; i < SHOP_ITEMS.length; i++) {
     if (SHOP_ITEMS[i].id === itemId) { item = SHOP_ITEMS[i]; break; }
   }
-  if (!item) return;
+  if (!item) { showToast('⚠️ 商品不存在！'); return; }
   if (state.points < item.cost) { showToast('⚠️ 积分不足！'); return; }
+  // 确保 state.skins 是数组
+  if (!Array.isArray(state.skins)) state.skins = [];
   if (state.skins.indexOf(item.id) >= 0) { showToast('⚠️ 已拥有！'); return; }
   state.points -= item.cost;
   state.skins.push(item.id);
   save('points', state.points);
   save('skins', state.skins);
+  // 验证保存成功
+  var saved = JSON.parse(localStorage.getItem('rpg-skins') || '[]');
+  if (saved.indexOf(item.id) < 0) {
+    console.error('保存失败！item.id:', item.id, 'saved:', saved);
+  }
   showToast('🎉 获得【' + item.name + '】！');
-  render();
+  // 延迟一点渲染，确保状态已更新
+  setTimeout(function() { render(); }, 50);
 }
 
 // ============ 应用皮肤 ============
