@@ -362,7 +362,9 @@ function renderMain() {
       '</div>';
   }
 
-  return '<div style="background:' + bg + ',#1a1a2e;min-height:100vh">' + toastHtml +
+  // 如果有激活皮肤，主背景由 applySkin() 通过 element style 控制，这里不写内联背景
+  var mainBg = state.activeSkin && SKIN_CONFIG[state.activeSkin] ? 'transparent' : bg + ',#1a1a2e';
+  return '<div style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
     '<header class="header">' +
       '<div class="header-left">' +
         '<span style="font-size:1.3rem">' + (w ? w.icon : '') + '</span>' +
@@ -621,11 +623,18 @@ function buyItem(itemId) {
 
 // ============ 应用皮肤 ============
 function applySkin() {
-  if (!state.activeSkin || !SKIN_CONFIG[state.activeSkin]) return;
+  var appEl = document.getElementById('app');
+  if (!state.activeSkin || !SKIN_CONFIG[state.activeSkin]) {
+    // 清除皮肤，恢复世界观默认背景
+    if (appEl) appEl.style.background = '';
+    var oldStyle = document.getElementById('skin-dynamic-style');
+    if (oldStyle) oldStyle.remove();
+    return;
+  }
   var cfg = SKIN_CONFIG[state.activeSkin];
-  // 动态更新页面根元素背景
-  document.body.style.background = cfg.bg + ',#1a1a2e';
-  // 更新 header 强调色
+  // 直接更新主 div 的背景（和内联 style 渲染保持一致）
+  if (appEl) appEl.style.background = cfg.bg + ',#1a1a2e';
+  // 动态样式：改按钮和进度条颜色
   var styleEl = document.getElementById('skin-dynamic-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
@@ -635,7 +644,7 @@ function applySkin() {
   styleEl.textContent =
     '.btn-add{background:linear-gradient(135deg,' + cfg.accent + ',' + cfg.accent + '88)!important}' +
     '.xp-fill{background:linear-gradient(90deg,' + cfg.accent + ',' + cfg.accent + '88)!important}' +
-    '.level-badge{background:' + cfg.accent + '!important}';
+    '.level-badge{background:' + cfg.accent + '!important;color:#1a1a2e!important}';
 }
 
 // ============ HTML 转义 ============
