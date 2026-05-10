@@ -324,8 +324,11 @@ function renderMain() {
         }
       } else if (owned) {
         btnHtml = '<span class="item-owned">✅ 已拥有</span>';
+      } else {
+        var canAfford = state.points >= item.cost;
+        btnHtml = '<button data-action="buy-item" data-item-id="' + item.id + '" style="background:' + borderC + ';color:#000;border:none;padding:.3rem .7rem;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit;opacity:' + (canAfford ? '1' : '0.4') + '">' + (canAfford ? '购买' : '积分不足') + '</button>';
       }
-      items += '<div class="shop-item' + (owned ? ' owned' : '') + '" data-item-id="' + item.id + '" style="border-color:' + borderC + '">' +
+      items += '<div class="shop-item" data-item-id="' + item.id + '" style="border-color:' + borderC + '">' +
         '<span class="item-name">' + item.name + '</span>' +
         '<span class="item-cost">' + item.cost + ' XP</span>' +
         btnHtml +
@@ -492,6 +495,10 @@ function handleAction(e) {
     save('activeSkin', itemId);
     showToast('🎨 已切换主题！');
     render();
+  }
+  else if (action === 'buy-item') {
+    var itemId = this.getAttribute('data-item-id');
+    buyItem(itemId);
   }
 }
 
