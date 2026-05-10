@@ -204,6 +204,8 @@ let state = {
   shopTab: 'theme',
   showImport: false,
   importText: '',
+  showSettings: false, // 设置弹窗
+  apiKey: localStorage.getItem('qwen-api-key') || '', // 通义千问API Key
   toast: '',
   toastTimer: null,
 };
@@ -528,6 +530,27 @@ function renderMain() {
     }
   }
 
+  // 设置弹窗
+  let settingsHtml = '';
+  if (state.showSettings) {
+    var hasApiKey = state.apiKey && state.apiKey.length >;
+    settingsHtml = '<div class="modal-overlay" id="settings-overlay">' +
+      '<div class="modal" style="max-width:450px">' +
+        '<h3>⚙️ 设置</h3>' +
+        '<div style="margin:.8rem 0">' +
+          '<label style="font-size:.85rem;color:#aaa;display:block;margin-bottom:.3rem">通义千问 API Key：</label>' +
+          '<input type="password" id="api-key-input" value="' + escAttr(state.apiKey) + '" placeholder="请输入 API Key..." style="width:100%;padding:.6rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e0e0e0;font-size:.9rem;outline:none;box-sizing:border-box">' +
+          '<p style="font-size:.75rem;color:#888;margin-top:.3rem">API Key 存储在本地浏览器中，不会被上传到服务器</p>' +
+        '</div>' +
+        '<div style="display:flex;gap:.5rem;margin-top:1rem">' +
+          '<button id="btn-save-settings" class="btn-add" style="flex:1" data-action="save-settings">💾 保存设置</button>' +
+          '<button id="btn-cancel-settings" style="padding:.5rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#e0e0e0;cursor:pointer;font-size:.85rem" data-action="cancel-settings">取消</button>' +
+        '</div>' +
+        (hasApiKey ? '<p style="font-size:.8rem;color:#4caf50;margin-top:.5rem">✅ API Key 已设置</p>' : '') +
+      '</div>' +
+    '</div>';
+  }
+  
   // 导入弹窗
   let importHtml = '';
   if (state.showImport) {
@@ -593,11 +616,12 @@ function renderMain() {
     importHtml +
     shopHtml +
     rewardModalHtml +
+    settingsHtml +
     '<main class="task-list">' + rewardTasksHtml + taskCards + doneCards + '</main>' +
     '<footer class="footer">' +
       '<p>等级 Lv.' + state.level + ' | 积分 ' + state.points + ' XP | 连击 x' + state.streak + ' | 已完成 ' + doneTodos.length + ' 个任务</p>' +
-      '<p class="footer-note">积分永不重置 | 每日登录 +50 XP | 去商店兑换真实奖励吧！</p>' +
-      '</footer>' +
+      '<p class="footer-note">积分永不重置 | 每日登录 +50 XP | <span style="color:#ffd700;cursor:pointer" data-action="open-settings">⚙️ 设置</span> | 去商店兑换真实奖励吧！</p>' +
+    '</footer>' +
     '</div>';
 }
 
@@ -897,6 +921,33 @@ function deleteRewardTask(id) {
   render();
 }
 
+// ============ 设置功能 ============
+function openSettings() {
+  state.showSettings = true;
+  state.apiKey = localStorage.getItem('qwen-api-key') || '';
+  render();
+}
+
+function saveSettings() {
+  var input = document.getElementById('api-key-input');
+  if (!input) return;
+  var key = input.value.trim();
+  state.apiKey = key;
+  localStorage.setItem('qwen-api-key', key);
+  state.showSettings = false;
+  if (key) {
+    showToast('✅ API Key 已保存！现在可以用 AI 生成任务了');
+  } else {
+    showToast('⚠️ API Key 已清空');
+  }
+  render();
+}
+
+function cancelSettings() {
+  state.showSettings = false;
+  render();
+}
+
 // ============ 应用皮肤 ============
 function applySkin() {
   if (!state.activeSkin || !SKIN_CONFIG[state.activeSkin]) {
@@ -960,6 +1011,10 @@ document.addEventListener('click', function(e) {
     if (action === 'delete-reward') {
       deleteRewardTask(Number(actionEl.getAttribute('data-id'))); return;
     }
+    // 设置操作
+    if (action === 'open-settings') { openSettings(); return; }
+    if (action === 'save-settings') { saveSettings(); return; }
+    if (action === 'cancel-settings') { cancelSettings(); return; }
     return;
   }
   // 2. 世界观卡片
