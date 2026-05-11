@@ -99,6 +99,21 @@ body{font-family:'Segoe UI','PingFang SC',sans-serif;color:#e0e0e0;min-height:10
 .gallery-card-name{font-size:.78rem;font-weight:600;color:#fff}
 .gallery-card-title{font-size:.65rem;color:#aaa;margin-top:.1rem}
 .gallery-card-equipped-badge{position:absolute;top:.3rem;right:.3rem;background:#ffd700;color:#1a1a2e;font-size:.6rem;font-weight:700;padding:.15rem .35rem;border-radius:4px}
+
+/* 历史记录弹窗 */
+.history-date-list{max-height:200px;overflow-y:auto;margin-bottom:1rem}
+.history-date-item{display:flex;align-items:center;gap:.5rem;padding:.5rem;border-radius:8px;cursor:pointer;transition:background .2s;margin-bottom:.3rem}
+.history-date-item:hover{background:rgba(255,255,255,.08)}
+.history-date-item.active{background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3)}
+.history-date-dot{width:10px;height:10px;border-radius:50%;background:#ffd700;flex-shrink:0}
+.history-date-label{font-size:.85rem;color:#fff}
+.history-date-count{font-size:.7rem;color:#888;margin-left:auto}
+.history-day-tasks{margin-top:.8rem}
+.history-task-item{display:flex;align-items:flex-start;gap:.5rem;padding:.6rem;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:.4rem;border-left:3px solid #ffd700}
+.history-task-text{flex:1;font-size:.85rem;color:#ddd;line-height:1.4}
+.history-task-meta{font-size:.7rem;color:#888;margin-top:.2rem}
+.history-task-points{color:#ffd700;font-weight:600;font-size:.8rem;white-space:nowrap}
+.history-empty{text-align:center;padding:2rem;color:#666;font-size:.9rem}
 </style>
 </head>
 <body>
@@ -275,6 +290,14 @@ let state = {
       return Array.isArray(val) ? val : [];
     } catch(e) { return []; }
   })(),
+  // 历史记录
+  historyOpen: false,
+  history: (function() {
+    try {
+      var val = JSON.parse(localStorage.getItem('rpg-history') || '{}');
+      return typeof val === 'object' && val !== null ? val : {};
+    } catch(e) { return {}; }
+  })(),
   // 图鉴
   galleryOpen: false,
   toast: '',
@@ -294,6 +317,7 @@ function save(key, value) {
   else if (key === 'world') localStorage.setItem('rpg-world', value);
   else if (key === 'rewardTasks') localStorage.setItem('rpg-reward-tasks', JSON.stringify(value));
   else if (key === 'checkinHistory') localStorage.setItem('rpg-checkin-history', JSON.stringify(value));
+  else if (key === 'history') localStorage.setItem('rpg-history', JSON.stringify(value));
 }
 
 // ============ 通义千问 API 调用 ============
@@ -715,6 +739,60 @@ function renderMain() {
     '</div>';
   }
 
+  // 历史记录弹窗
+  var historyHtml = '';
+  if (state.historyOpen) {
+    var dates = Object.keys(state.history).sort().reverse();
+    var today = getTodayStr();
+    var selectedDate = state.selectedHistoryDate || dates[0] || today;
+    var dayTasks = state.history[selectedDate] || [];
+
+    // 日期列表
+    var dateListHtml = dates.length ? dates.map(function(d) {
+      var isToday = d === today;
+      var isActive = d === selectedDate;
+      var count = (state.history[d] || []).length;
+      var totalPoints = (state.history[d] || []).reduce(function(s, t) { return s + (t.points || 0); }, 0);
+      var label = isToday ? '今天' : d;
+      return '<div class="history-date-item' + (isActive ? ' active' : '') + '" data-action="select-history-date" data-date="' + d + '">' +
+        '<div class="history-date-dot"></div>' +
+        '<div class="history-date-label">' + label + '</div>' +
+        '<div class="history-date-count">' + count + '任务 · +' + totalPoints + 'XP</div>' +
+      '</div>';
+    }).join('') : '<div class="history-empty">暂无历史记录<br>完成任务后会显示在这里</div>';
+
+    // 当日任务列表
+    var tasksHtml = '';
+    if (dayTasks.length) {
+      tasksHtml = dayTasks.map(function(t) {
+        var diffLabel = {0.5:'简单',1:'普通',1.5:'困难',2:'极难'}[t.difficulty] || '普通';
+        var time = new Date(t.completedAt);
+        var timeStr = time.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+        return '<div class="history-task-item">' +
+          '<div style="flex:1">' +
+            '<div class="history-task-text">' + escHtml(t.text) + '</div>' +
+            '<div class="history-task-meta">' + diffLabel + ' · ' + t.minutes + '分钟 · ' + timeStr + '</div>' +
+          '</div>' +
+          '<div class="history-task-points">+' + t.points + 'XP</div>' +
+        '</div>';
+      }).join('');
+    } else {
+      tasksHtml = '<div class="history-empty">当日暂无完成记录</div>';
+    }
+
+    historyHtml = '<div class="modal-overlay" id="history-overlay">' +
+      '<div class="modal" style="max-width:500px;max-height:85vh;overflow-y:auto">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">' +
+          '<h3 style="margin:0">📊 过往日常</h3>' +
+          '<button data-action="close-history" style="background:none;border:none;color:#aaa;font-size:1.3rem;cursor:pointer;line-height:1">×</button>' +
+        '</div>' +
+        '<div class="history-date-list">' + dateListHtml + '</div>' +
+        '<div class="history-day-tasks">' + tasksHtml + '</div>' +
+        '<button class="btn-close" data-action="close-history" style="width:100%;margin-top:1rem">关闭</button>' +
+      '</div>' +
+    '</div>';
+  }
+
   return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
     '<header class="header">' +
       '<div class="header-left">' +
@@ -730,6 +808,7 @@ function renderMain() {
       '<div class="header-right">' +
         '<span class="streak-badge">🔥 连击 x' + state.streak + '</span>' +
         '<button class="btn-shop" data-action="open-checkin" style="' + (hasTodayCheckin() ? '' : 'background:rgba(255,215,0,.18);border-color:rgba(255,215,0,.5);') + '">📅 签到' + (hasTodayCheckin() ? ' ✅' : '') + '</button>' +
+        '<button class="btn-shop" data-action="open-history">📊 日常</button>' +
         '<button class="btn-shop" data-action="open-gallery">📖 图鉴</button>' +
         '<button class="btn-shop" data-action="open-shop">🛒 商店</button>' +
         '<button class="btn-switch" data-action="switch-world">🔄 换世界观</button>' +
@@ -759,6 +838,7 @@ function renderMain() {
     settingsHtml +
     renderCheckinModal() +
     galleryHtml +
+    historyHtml +
     '<main class="task-list">' + rewardTasksHtml + taskCards + doneCards + '</main>' +
     '<footer class="footer">' +
       '<p>等级 Lv.' + state.level + ' | 积分 ' + state.points + ' XP | 连击 x' + state.streak + ' | 已完成 ' + doneTodos.length + ' 个任务</p>' +
@@ -899,6 +979,16 @@ function completeTask(id) {
     save('points', state.points);
     save('streak', state.streak);
     save('lastDate', state.lastDate);
+    // 记录到历史
+    if (!state.history[today]) state.history[today] = [];
+    state.history[today].push({
+      text: t.text,
+      points: finalPoints,
+      completedAt: new Date().toISOString(),
+      difficulty: t.difficulty || 1,
+      minutes: t.minutes || 0
+    });
+    save('history', state.history);
     showToast('🎉 +' + finalPoints + ' 积分！连击 x' + newStreak);
     return Object.assign({}, t, { done: true, completedAt: new Date().toISOString() });
   });
@@ -1301,6 +1391,12 @@ document.addEventListener('click', function(e) {
     if (action === 'do-checkin') { doCheckin(); return; }
     if (action === 'open-gallery') { state.galleryOpen = true; render(); return; }
     if (action === 'close-gallery') { state.galleryOpen = false; render(); return; }
+    if (action === 'open-history') { state.historyOpen = true; render(); return; }
+    if (action === 'close-history') { state.historyOpen = false; render(); return; }
+    if (action === 'select-history-date') {
+      state.selectedHistoryDate = actionEl.getAttribute('data-date');
+      render(); return;
+    }
     // 奖励弹窗生成/取消按钮
     if (action === 'generate-reward') {
       var genBtn = document.getElementById('btn-gen-reward');
