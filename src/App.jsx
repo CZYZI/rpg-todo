@@ -72,10 +72,70 @@ const SHOP_ITEMS = [
   { id: 'prop-freeze', name: '连击冻结卡', world: 'all', cost: 800, type: 'prop' },
 ]
 
+/* ============ 个人设置表单组件 ============ */
+function ProfileSetupForm({ initialName, initialBirthday, onSave, isFirstTime }) {
+  const [name, setName] = useState(initialName)
+  const [bday, setBday] = useState(initialBirthday)
+
+  const handleSubmit = () => {
+    if (!name.trim()) return
+    onSave(name.trim(), bday)
+  }
+
+  const bdayInfo = bday ? (() => {
+    const today = new Date()
+    const b = new Date(bday + 'T00:00:00')
+    const age = today.getFullYear() - b.getFullYear() -
+      (today < new Date(today.getFullYear(), b.getMonth(), b.getDate()) ? 1 : 0)
+    let next = new Date(today.getFullYear(), b.getMonth(), b.getDate())
+    if (next < today) next = new Date(today.getFullYear() + 1, b.getMonth(), b.getDate())
+    const days = Math.ceil((next - today) / 86400000)
+    return { age, days }
+  })() : null
+
+  return (
+    <div className="profile-setup">
+      <p className="setup-hint">{isFirstTime ? '请创建你的冒险者角色' : '修改个人信息'}</p>
+      <div className="form-group">
+        <label>冒险者名字 *</label>
+        <input
+          type="text" value={name} onChange={e => setName(e.target.value)}
+          placeholder="输入你的名字"
+          autoFocus
+          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+        />
+      </div>
+      <div className="form-group">
+        <label>生日（选填）</label>
+        <input
+          type="date" value={bday} onChange={e => setBday(e.target.value)}
+        />
+      </div>
+      {bdayInfo && (
+        <p className="birthday-info">
+          🎂 {bdayInfo.age}岁 | 距离下次生日还有 <strong>{bdayInfo.days}</strong> 天
+        </p>
+      )}
+      <div className="modal-btns">
+        <button onClick={handleSubmit} className="btn-add" disabled={!name.trim()}>
+          {isFirstTime ? '开始冒险 ⚔️' : '保存'}
+        </button>
+        {!isFirstTime && (
+          <button onClick={() => onSave(initialName, initialBirthday)}>取消</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ============ 主组件 ============ */
 export default function App() {
   /* -- 状态 -- */
   const [world, setWorld] = useState(() => localStorage.getItem('rpg-world') || '')
+  const [username, setUsername] = useState(() => localStorage.getItem('rpg-username') || '')
+  const [birthday, setBirthday] = useState(() => localStorage.getItem('rpg-birthday') || '')
+  const [showProfileSetup, setShowProfileSetup] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [todos, setTodos] = useState(() => JSON.parse(localStorage.getItem('rpg-todos') || '[]'))
   const [points, setPoints] = useState(() => Number(localStorage.getItem('rpg-points') || 0))
   const [level, setLevel] = useState(() => Number(localStorage.getItem('rpg-level') || 1))
@@ -92,8 +152,15 @@ export default function App() {
   const [importText, setImportText] = useState('')
   const [toast, setToast] = useState('')
 
+  /* -- 首次访问检测 -- */
+  useEffect(() => {
+    if (!username) setShowProfileSetup(true)
+  }, [username])
+
   /* -- 持久化 -- */
   useEffect(() => { localStorage.setItem('rpg-world', world) }, [world])
+  useEffect(() => { localStorage.setItem('rpg-username', username) }, [username])
+  useEffect(() => { localStorage.setItem('rpg-birthday', birthday) }, [birthday])
   useEffect(() => { localStorage.setItem('rpg-todos', JSON.stringify(todos)) }, [todos])
   useEffect(() => { localStorage.setItem('rpg-points', points) }, [points])
   useEffect(() => { localStorage.setItem('rpg-level', level) }, [level])
@@ -122,6 +189,15 @@ export default function App() {
     setToast(msg)
     setTimeout(() => setToast(''), 2500)
   }, [])
+
+  /* -- 保存个人设置 -- */
+  const saveProfile = useCallback((name, bday) => {
+    if (name && name.trim()) setUsername(name.trim())
+    setBirthday(bday || '')
+    setShowProfileSetup(false)
+    setShowSettings(false)
+    showToast('✅ 保存成功！')
+  }, [showToast])
 
   /* -- 生成任务 -- */
   const generateTask = useCallback((text) => {
@@ -233,6 +309,18 @@ export default function App() {
   if (!world) {
     return (
       <div className="app" style={{ background: '#1a1a2e', minHeight: '100vh' }}>
+        {/* 个人设置弹窗（首次） */}
+        {showProfileSetup && (
+          <div className="modal-overlay" onClick={e => e.stopPropagation()}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <h3>🎮 欢迎来到 RPG 待办冒险！</h3>
+              <ProfileSetupForm
+                initialName={username} initialBirthday={birthday}
+                onSave={saveProfile} isFirstTime
+              />
+            </div>
+          </div>
+        )}
         <div className="world-select">
           <h1>⚔️ RPG 待办冒险</h1>
           <p className="subtitle">选择你的冒险世界观</p>
@@ -257,6 +345,19 @@ export default function App() {
     <div className="app" style={{ background: wStyle.bg }}>
       {toast && <div className="toast">{toast}</div>}
 
+      {/* 个人设置弹窗 */}
+      {(showProfileSetup || showSettings) && (
+        <div className="modal-overlay" onClick={e => e.stopPropagation()}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>{showProfileSetup ? '🎮 欢迎来到 RPG 待办冒险！' : '⚙️ 个人设置'}</h3>
+            <ProfileSetupForm
+              initialName={username} initialBirthday={birthday}
+              onSave={saveProfile} isFirstTime={showProfileSetup}
+            />
+          </div>
+        </div>
+      )}
+
       {/* 顶部栏 */}
       <header className="header">
         <div className="header-left">
@@ -271,6 +372,8 @@ export default function App() {
           <span className="points">{points} XP</span>
         </div>
         <div className="header-right">
+          <span className="username-display">🧑 {username || '冒险者'}</span>
+          <button className="btn-settings" onClick={() => setShowSettings(true)}>⚙️</button>
           <span className="streak-badge">🔥 连击 x{streak}</span>
           <button className="btn-shop" onClick={() => setShopOpen(true)}>🛒 商店</button>
           <button className="btn-switch" onClick={() => setWorld('')}>🔄 换世界观</button>
@@ -402,7 +505,7 @@ export default function App() {
       {/* 底部进度 */}
       <footer className="footer">
         <p>等级 Lv.{level} | 积分 {points} XP | 连击 x{streak} | 已完成 {doneTodos.length} 个任务</p>
-        <p className="footer-note">积分永不重置 | 每日登录 +50 XP</p>
+        <p className="footer-note">积分永不重置 | 每日登录 +50 XP | 🧑 {username}</p>
       </footer>
     </div>
   )

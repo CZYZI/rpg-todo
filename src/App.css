@@ -86,3 +86,19 @@ body { font-family: 'Segoe UI', 'PingFang SC', sans-serif; color: #e0e0e0; min-h
 /* ========= 页脚 ========= */
 .footer { text-align: center; padding: 1.5rem; font-size: 0.8rem; color: #666; border-top: 1px solid rgba(255,255,255,0.06); }
 .footer-note { margin-top: 0.3rem; font-size: 0.75rem; color: #555; }
+
+/* ========= 用户名 + 设置按钮 ========= */
+.username-display { font-size: 0.85rem; color: #ffd700; font-weight: 600; white-space: nowrap; }
+.btn-settings { background: none; border: 1px solid rgba(255,255,255,0.15); color: #aaa; cursor: pointer; font-size: 1rem; padding: 0.25rem 0.5rem; border-radius: 8px; line-height: 1; }
+.btn-settings:hover { background: rgba(255,255,255,0.1); color: #e0e0e0; }
+
+/* ========= 个人设置表单 ========= */
+.profile-setup { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 0.8rem; }
+.setup-hint { font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-group label { font-size: 0.85rem; color: #ccc; }
+.form-group input[type="text"],
+.form-group input[type="date"] { padding: 0.5rem 0.8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #e0e0e0; font-size: 0.95rem; }
+.form-group input:focus { outline: none; border-color: rgba(255,215,0,0.5); }
+.birthday-info { font-size: 0.85rem; color: #ffd700; margin-top: 0.3rem; }
+.modal-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
