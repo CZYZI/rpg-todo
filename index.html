@@ -87,14 +87,6 @@ body{font-family:'Segoe UI','PingFang SC',sans-serif;color:#e0e0e0;min-height:10
 /* 图鉴 */
 .hidden{display:none!important}
 
-/* 左侧角色立绘面板 */
-.char-panel{position:fixed;left:0;top:0;bottom:0;width:160px;z-index:9;overflow:hidden;cursor:pointer;transition:width .3s}
-.char-panel img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;pointer-events:none}
-.char-panel-overlay{position:absolute;bottom:0;left:0;right:0;padding:1rem .6rem .8rem;background:linear-gradient(transparent,rgba(0,0,0,.85));pointer-events:none}
-.char-panel-name{font-weight:700;font-size:.95rem;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8)}
-.char-panel-title{font-size:.7rem;color:rgba(255,255,255,.7);margin-top:.1rem;text-shadow:0 1px 3px rgba(0,0,0,.8)}
-.char-panel-quote{font-size:.65rem;color:rgba(255,255,255,.5);margin-top:.3rem;font-style:italic;text-shadow:0 1px 2px rgba(0,0,0,.8)}
-
 /* 图鉴弹窗 */
 .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-top:.8rem}
 .gallery-card{border-radius:12px;border:1px solid rgba(255,255,255,.12);overflow:hidden;cursor:pointer;transition:all .2s;position:relative;background:rgba(255,255,255,.05)}
@@ -679,8 +671,8 @@ function renderMain() {
   var charHtml = '';
   if (state.activeChar && CHAR_CONFIG[state.activeChar]) {
     var cc = CHAR_CONFIG[state.activeChar];
-    charHtml = '<div data-action="open-gallery" style="display:flex;align-items:center;gap:.4rem;cursor:pointer;background:' + cc.bg + ';border:1px solid ' + cc.color + '44;border-radius:20px;padding:.2rem .6rem .2rem .3rem;transition:all .2s" title="' + cc.quote + '">' +
-      '<span style="font-size:1.3rem;line-height:1">' + cc.avatar + '</span>' +
+    charHtml = '<div data-action="open-gallery" style="display:flex;align-items:center;gap:.4rem;cursor:pointer;background:' + cc.bg + ';border:1px solid ' + cc.color + '44;border-radius:20px;padding:.2rem .6rem .2rem .2rem;transition:all .2s" title="' + cc.quote + '">' +
+      '<img src="' + cc.portrait + '" alt="' + cc.name + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid ' + cc.color + '">' +
       '<div style="line-height:1.2">' +
         '<div style="font-size:.75rem;font-weight:700;color:' + cc.color + '">' + cc.name + '</div>' +
         '<div style="font-size:.62rem;color:#aaa">' + cc.title + '</div>' +
@@ -688,19 +680,7 @@ function renderMain() {
     '</div>';
   }
 
-  // 左侧角色立绘面板
-  var charPanelHtml = '';
-  if (state.activeChar && CHAR_CONFIG[state.activeChar]) {
-    var pcc = CHAR_CONFIG[state.activeChar];
-    charPanelHtml = '<div class="char-panel" data-action="open-gallery" title="点击查看人物图鉴">' +
-      '<img src="' + pcc.portrait + '" alt="' + pcc.name + '" onerror="this.style.display=\'none\'">' +
-      '<div class="char-panel-overlay">' +
-        '<div class="char-panel-name">' + pcc.avatar + ' ' + pcc.name + '</div>' +
-        '<div class="char-panel-title">' + pcc.title + '</div>' +
-        '<div class="char-panel-quote">' + pcc.quote + '</div>' +
-      '</div>' +
-    '</div>';
-  }
+  // 左侧角色立绘面板（已移除，改用圆形头像）
 
   // 图鉴弹窗
   var galleryHtml = '';
@@ -735,7 +715,7 @@ function renderMain() {
     '</div>';
   }
 
-  return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh;padding-left:' + (charPanelHtml ? '168px' : '0') + '">' + toastHtml + charPanelHtml +
+  return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
     '<header class="header">' +
       '<div class="header-left">' +
         '<span style="font-size:1.3rem">' + (w ? w.icon : '') + '</span>' +
