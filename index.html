@@ -488,8 +488,8 @@ function renderMain() {
           '<p id="reward-preview-meta" style="font-size:.78rem;color:#aaa"></p>' +
         '</div>' +
         '<div class="modal-btns">' +
-          '<button id="btn-gen-reward" class="btn-add" style="flex:1">✨ 生成任务（AI）</button>' +
-          '<button id="btn-cancel-reward" style="padding:.5rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#e0e0e0;cursor:pointer;font-size:.85rem">取消</button>' +
+          '<button id="btn-gen-reward" data-action="generate-reward" class="btn-add" style="flex:1">✨ 生成任务（AI）</button>' +
+          '<button id="btn-cancel-reward" data-action="cancel-reward" style="padding:.5rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#e0e0e0;cursor:pointer;font-size:.85rem">取消</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1015,6 +1015,13 @@ document.addEventListener('click', function(e) {
     if (action === 'open-settings') { openSettings(); return; }
     if (action === 'save-settings') { saveSettings(); return; }
     if (action === 'cancel-settings') { cancelSettings(); return; }
+    // 奖励弹窗生成/取消按钮
+    if (action === 'generate-reward') {
+      var genBtn = document.getElementById('btn-gen-reward');
+      if (!genBtn || genBtn.disabled) return;
+      generateRewardTask(); return;
+    }
+    if (action === 'cancel-reward') { cancelRewardTask(); return; }
     return;
   }
   // 2. 世界观卡片
@@ -1046,29 +1053,18 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ============ 奖励弹窗事件绑定（动态内容需要单独绑定） ============
-document.addEventListener('DOMNodeInserted', function(e) {
-  // 奖励弹窗的按钮事件
-  if (e.target.id === 'btn-gen-reward') {
-    e.target.addEventListener('click', generateRewardTask);
-  }
-  if (e.target.id === 'btn-cancel-reward') {
-    e.target.addEventListener('click', cancelRewardTask);
-  }
-  // 奖励任务输入框回车
-  var taskInput = document.getElementById('reward-task-input');
-  if (taskInput && !taskInput.dataset.bound) {
-    taskInput.dataset.bound = 'true';
-    taskInput.addEventListener('keydown', function(ev) {
-      if (ev.key === 'Enter' && !document.getElementById('btn-gen-reward').disabled) {
-        generateRewardTask();
-      }
-    });
-  }
-});
-
 // ============ 首次渲染 ============
 render();
+
+// ============ 输入框回车支持 ============
+document.addEventListener('keydown', function(ev) {
+  if (ev.key !== 'Enter') return;
+  // 奖励任务输入框回车 → 生成任务
+  if (ev.target.id === 'reward-task-input') {
+    var btn = document.getElementById('btn-gen-reward');
+    if (btn && !btn.disabled) generateRewardTask();
+  }
+});
 </script>
 </body>
 </html>
