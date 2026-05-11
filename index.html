@@ -955,12 +955,12 @@ function renderMain() {
   if (state.aiOpen) {
     var weatherHtml = '';
     if (state.aiWeather) {
-      var w = state.aiWeather;
+      var weather = state.aiWeather;
       weatherHtml = '<div class="ai-weather">' +
-        '<div class="ai-weather-city">📍 ' + w.city + '</div>' +
-        '<div class="ai-weather-main">' + w.temp + '°C</div>' +
-        '<div class="ai-weather-desc">' + w.desc + '</div>' +
-        '<div class="ai-weather-detail">湿度 ' + w.humidity + '% · 风速 ' + w.wind + '</div>' +
+        '<div class="ai-weather-city">📍 ' + weather.city + '</div>' +
+        '<div class="ai-weather-main">' + weather.temp + '°C</div>' +
+        '<div class="ai-weather-desc">' + weather.desc + '</div>' +
+        '<div class="ai-weather-detail">湿度 ' + weather.humidity + '% · 风速 ' + weather.wind + '</div>' +
       '</div>';
     } else if (state.aiWeather === null) {
       weatherHtml = '<div class="ai-weather-loading">正在获取天气...</div>';
