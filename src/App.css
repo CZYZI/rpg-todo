@@ -102,3 +102,17 @@ body { font-family: 'Segoe UI', 'PingFang SC', sans-serif; color: #e0e0e0; min-h
 .form-group input:focus { outline: none; border-color: rgba(255,215,0,0.5); }
 .birthday-info { font-size: 0.85rem; color: #ffd700; margin-top: 0.3rem; }
 .modal-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ========= 已完成任务的删除按钮（提高可见度） ========= */
+.btn-delete-done {
+  background: rgba(255,82,82,0.15) !important;
+  border: 1px solid rgba(255,82,82,0.4) !important;
+  color: #ff5252 !important;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  opacity: 1 !important;
+  transition: background 0.2s;
+}
+.btn-delete-done:hover { background: rgba(255,82,82,0.3) !important; }

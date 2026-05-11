@@ -46,11 +46,6 @@ function mockGenerate(todo, world, minutes, difficulty) {
   return { desc: `${verb}【${short}】— 在【${place}】击败【${monster}】，奖励${points}积分`, points }
 }
 
-/* ============ 积分计算 ============ */
-function calcPoints(minutes, difficulty) {
-  return Math.round(minutes * (difficulty || 1.0))
-}
-
 /* ============ 商店数据 ============ */
 const SHOP_ITEMS = [
   { id: 'skin-fantasy-dragon', name: '龙巢主题', world: 'fantasy', cost: 500, type: 'theme' },
@@ -130,11 +125,10 @@ function ProfileSetupForm({ initialName, initialBirthday, onSave, isFirstTime })
 
 /* ============ 主组件 ============ */
 export default function App() {
-  /* -- 状态 -- */
+  /* -- 从 localStorage 读取初始值 -- */
   const [world, setWorld] = useState(() => localStorage.getItem('rpg-world') || '')
   const [username, setUsername] = useState(() => localStorage.getItem('rpg-username') || '')
   const [birthday, setBirthday] = useState(() => localStorage.getItem('rpg-birthday') || '')
-  const [showProfileSetup, setShowProfileSetup] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [todos, setTodos] = useState(() => JSON.parse(localStorage.getItem('rpg-todos') || '[]'))
   const [points, setPoints] = useState(() => Number(localStorage.getItem('rpg-points') || 0))
@@ -152,10 +146,9 @@ export default function App() {
   const [importText, setImportText] = useState('')
   const [toast, setToast] = useState('')
 
-  /* -- 首次访问检测 -- */
-  useEffect(() => {
-    if (!username) setShowProfileSetup(true)
-  }, [username])
+  /* -- 弹窗显示逻辑：username 为空时强制弹（包括首次和手动点设置） -- */
+  const showProfileSetup = !username
+  const isFirstTime = !localStorage.getItem('rpg-username')
 
   /* -- 持久化 -- */
   useEffect(() => { localStorage.setItem('rpg-world', world) }, [world])
@@ -194,7 +187,6 @@ export default function App() {
   const saveProfile = useCallback((name, bday) => {
     if (name && name.trim()) setUsername(name.trim())
     setBirthday(bday || '')
-    setShowProfileSetup(false)
     setShowSettings(false)
     showToast('✅ 保存成功！')
   }, [showToast])
@@ -273,10 +265,10 @@ export default function App() {
     }))
   }, [streak, lastDate, showToast])
 
-  /* -- 删除任务 -- */
-  const deleteTask = useCallback((id) => {
+  /* -- 删除任务（不用 useCallback，避免闭包问题） -- */
+  const deleteTask = (id) => {
     setTodos(prev => prev.filter(t => t.id !== id))
-  }, [])
+  }
 
   /* -- 购买商品 -- */
   const buyItem = useCallback((item) => {
@@ -305,22 +297,29 @@ export default function App() {
     }
   }, [showToast])
 
+  /* ========== 渲染 ========== */
+
+  /* -- 个人设置弹窗（优先渲染，覆盖所有界面） -- */
+  if (showProfileSetup || showSettings) {
+    return (
+      <div className="app" style={{ background: '#1a1a2e', minHeight: '100vh' }}>
+        <div className="modal-overlay">
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>{showProfileSetup ? '🎮 欢迎来到 RPG 待办冒险！' : '⚙️ 个人设置'}</h3>
+            <ProfileSetupForm
+              initialName={username} initialBirthday={birthday}
+              onSave={saveProfile} isFirstTime={isFirstTime}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   /* -- 未选世界观 -- */
   if (!world) {
     return (
       <div className="app" style={{ background: '#1a1a2e', minHeight: '100vh' }}>
-        {/* 个人设置弹窗（首次） */}
-        {showProfileSetup && (
-          <div className="modal-overlay" onClick={e => e.stopPropagation()}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-              <h3>🎮 欢迎来到 RPG 待办冒险！</h3>
-              <ProfileSetupForm
-                initialName={username} initialBirthday={birthday}
-                onSave={saveProfile} isFirstTime
-              />
-            </div>
-          </div>
-        )}
         <div className="world-select">
           <h1>⚔️ RPG 待办冒险</h1>
           <p className="subtitle">选择你的冒险世界观</p>
@@ -344,19 +343,6 @@ export default function App() {
   return (
     <div className="app" style={{ background: wStyle.bg }}>
       {toast && <div className="toast">{toast}</div>}
-
-      {/* 个人设置弹窗 */}
-      {(showProfileSetup || showSettings) && (
-        <div className="modal-overlay" onClick={e => e.stopPropagation()}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>{showProfileSetup ? '🎮 欢迎来到 RPG 待办冒险！' : '⚙️ 个人设置'}</h3>
-            <ProfileSetupForm
-              initialName={username} initialBirthday={birthday}
-              onSave={saveProfile} isFirstTime={showProfileSetup}
-            />
-          </div>
-        </div>
-      )}
 
       {/* 顶部栏 */}
       <header className="header">
@@ -415,7 +401,7 @@ export default function App() {
             <p>每行一个待办事项</p>
             <textarea
               value={importText} onChange={e => setImportText(e.target.value)}
-              placeholder="买菜\n写完报告\n锻炼30分钟"
+              placeholder="买菜&#10;写完报告&#10;锻炼30分钟"
               rows={8}
             />
             <div className="modal-btns">
@@ -495,7 +481,10 @@ export default function App() {
                   <p className="task-desc" style={{ opacity: 0.6 }}>{task.desc}</p>
                   <p className="task-meta" style={{ opacity: 0.4 }}>已完成 +{task.points} XP</p>
                 </div>
-                <button className="btn-delete" onClick={() => deleteTask(task.id)}>🗑️</button>
+                <button
+                  className="btn-delete btn-delete-done"
+                  onClick={() => deleteTask(task.id)}
+                >🗑️ 删除</button>
               </div>
             ))}
           </>
