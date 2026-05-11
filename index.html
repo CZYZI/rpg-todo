@@ -84,7 +84,29 @@ body{font-family:'Segoe UI','PingFang SC',sans-serif;color:#e0e0e0;min-height:10
 /* 页脚 */
 .footer{text-align:center;padding:1.5rem;font-size:.8rem;color:#666;border-top:1px solid rgba(255,255,255,.06)}
 .footer-note{margin-top:.3rem;font-size:.75rem;color:#555}
+/* 图鉴 */
 .hidden{display:none!important}
+
+/* 左侧角色立绘面板 */
+.char-panel{position:fixed;left:0;top:0;bottom:0;width:160px;z-index:9;overflow:hidden;cursor:pointer;transition:width .3s}
+.char-panel img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;pointer-events:none}
+.char-panel-overlay{position:absolute;bottom:0;left:0;right:0;padding:1rem .6rem .8rem;background:linear-gradient(transparent,rgba(0,0,0,.85));pointer-events:none}
+.char-panel-name{font-weight:700;font-size:.95rem;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.char-panel-title{font-size:.7rem;color:rgba(255,255,255,.7);margin-top:.1rem;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.char-panel-quote{font-size:.65rem;color:rgba(255,255,255,.5);margin-top:.3rem;font-style:italic;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+
+/* 图鉴弹窗 */
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-top:.8rem}
+.gallery-card{border-radius:12px;border:1px solid rgba(255,255,255,.12);overflow:hidden;cursor:pointer;transition:all .2s;position:relative;background:rgba(255,255,255,.05)}
+.gallery-card:hover:not(.locked){transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.gallery-card.locked{opacity:.4;cursor:not-allowed}
+.gallery-card.equipped{border-color:#ffd700;box-shadow:0 0 12px rgba(255,215,0,.4)}
+.gallery-card-img{width:100%;aspect-ratio:9/16;object-fit:cover;object-position:center top;display:block}
+.gallery-card-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8))}
+.gallery-card-info{padding:.4rem .5rem .5rem;background:rgba(0,0,0,.4)}
+.gallery-card-name{font-size:.78rem;font-weight:600;color:#fff}
+.gallery-card-title{font-size:.65rem;color:#aaa;margin-top:.1rem}
+.gallery-card-equipped-badge{position:absolute;top:.3rem;right:.3rem;background:#ffd700;color:#1a1a2e;font-size:.6rem;font-weight:700;padding:.15rem .35rem;border-radius:4px}
 </style>
 </head>
 <body>
@@ -177,36 +199,42 @@ const CHAR_CONFIG = {
     color: '#c0a060', bg: 'rgba(192,160,96,.15)',
     stats: ['⚔️ 攻击 +15%', '🛡️ 防御 +20%'],
     quote: '荣耀与钢铁，共铸我之意志。',
+    portrait: 'assets/chars/char-knight.png',
   },
   'char-mage': {
     avatar: '🔮', name: '星辰法师', title: '奥术知识者',
     color: '#7c6fff', bg: 'rgba(124,111,255,.15)',
     stats: ['✨ XP +10%', '🔮 连击+1'],
     quote: '每一个任务，都是召唤星辰的咒语。',
+    portrait: 'assets/chars/char-mage.png',
   },
   'char-hacker': {
     avatar: '💻', name: '代码幽灵', title: '数字荒野猎手',
     color: '#00ffcc', bg: 'rgba(0,255,204,.12)',
     stats: ['⚡ 速度 +25%', '🔓 隐匿加成'],
     quote: '在数据之海潜行，没有防火墙能阻挡我。',
+    portrait: 'assets/chars/char-hacker.png',
   },
   'char-robot': {
     avatar: '🤖', name: '钛合金战械', title: '机械进化体',
     color: '#ff6600', bg: 'rgba(255,102,0,.13)',
     stats: ['🤖 效率 +30%', '⚙️ 双倍产出概率'],
     quote: '逻辑是我的灵魂，算力是我的热血。',
+    portrait: 'assets/chars/char-robot.png',
   },
   'char-office': {
     avatar: '💼', name: '都市打工人', title: '职场生存专家',
     color: '#e94560', bg: 'rgba(233,69,96,.13)',
     stats: ['☕ 连击不断签', '📋 任务+经验'],
     quote: '卷生卷死，但今天的任务一定完成！',
+    portrait: 'assets/chars/char-office.png',
   },
   'char-athlete': {
     avatar: '🏃', name: '极限运动员', title: '意志超越者',
     color: '#00c851', bg: 'rgba(0,200,81,.13)',
     stats: ['🏆 XP +20%', '🔥 连击效果翻倍'],
     quote: '极限不是终点，是新的起点。',
+    portrait: 'assets/chars/char-athlete.png',
   },
 };
 
@@ -255,6 +283,8 @@ let state = {
       return Array.isArray(val) ? val : [];
     } catch(e) { return []; }
   })(),
+  // 图鉴
+  galleryOpen: false,
   toast: '',
   toastTimer: null,
 };
@@ -649,7 +679,7 @@ function renderMain() {
   var charHtml = '';
   if (state.activeChar && CHAR_CONFIG[state.activeChar]) {
     var cc = CHAR_CONFIG[state.activeChar];
-    charHtml = '<div data-action="open-shop" style="display:flex;align-items:center;gap:.4rem;cursor:pointer;background:' + cc.bg + ';border:1px solid ' + cc.color + '44;border-radius:20px;padding:.2rem .6rem .2rem .3rem;transition:all .2s" title="' + cc.quote + '">' +
+    charHtml = '<div data-action="open-gallery" style="display:flex;align-items:center;gap:.4rem;cursor:pointer;background:' + cc.bg + ';border:1px solid ' + cc.color + '44;border-radius:20px;padding:.2rem .6rem .2rem .3rem;transition:all .2s" title="' + cc.quote + '">' +
       '<span style="font-size:1.3rem;line-height:1">' + cc.avatar + '</span>' +
       '<div style="line-height:1.2">' +
         '<div style="font-size:.75rem;font-weight:700;color:' + cc.color + '">' + cc.name + '</div>' +
@@ -657,7 +687,55 @@ function renderMain() {
       '</div>' +
     '</div>';
   }
-  return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh">' + toastHtml +
+
+  // 左侧角色立绘面板
+  var charPanelHtml = '';
+  if (state.activeChar && CHAR_CONFIG[state.activeChar]) {
+    var pcc = CHAR_CONFIG[state.activeChar];
+    charPanelHtml = '<div class="char-panel" data-action="open-gallery" title="点击查看人物图鉴">' +
+      '<img src="' + pcc.portrait + '" alt="' + pcc.name + '" onerror="this.style.display=\'none\'">' +
+      '<div class="char-panel-overlay">' +
+        '<div class="char-panel-name">' + pcc.avatar + ' ' + pcc.name + '</div>' +
+        '<div class="char-panel-title">' + pcc.title + '</div>' +
+        '<div class="char-panel-quote">' + pcc.quote + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // 图鉴弹窗
+  var galleryHtml = '';
+  if (state.galleryOpen) {
+    var charCards = '';
+    Object.keys(CHAR_CONFIG).forEach(function(charId) {
+      var ccfg = CHAR_CONFIG[charId];
+      var owned = state.skins.indexOf(charId) >= 0;
+      var equipped = state.activeChar === charId;
+      var cardStyle = 'border-color:' + (equipped ? '#ffd700' : 'rgba(255,255,255,.12)');
+      charCards += '<div class="gallery-card ' + (owned ? '' : 'locked') + (equipped ? ' equipped' : '') + '" data-action="' + (owned ? 'use-char' : '') + '" data-item-id="' + charId + '" style="' + cardStyle + '">' +
+        (equipped ? '<div class="gallery-card-equipped-badge">⚔️ 装备中</div>' : '') +
+        '<img class="gallery-card-img" src="' + ccfg.portrait + '" alt="' + ccfg.name + '" onerror="this.style.display=\'none\'">' +
+        (owned ? '' : '<div class="gallery-card-lock">🔒</div>') +
+        '<div class="gallery-card-info">' +
+          '<div class="gallery-card-name" style="color:' + ccfg.color + '">' + ccfg.avatar + ' ' + ccfg.name + '</div>' +
+          '<div class="gallery-card-title">' + ccfg.title + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    galleryHtml = '<div class="modal-overlay" id="gallery-overlay">' +
+      '<div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">' +
+          '<h3 style="margin:0">📖 人物图鉴</h3>' +
+          '<button data-action="close-gallery" style="background:none;border:none;color:#aaa;font-size:1.3rem;cursor:pointer;line-height:1">×</button>' +
+        '</div>' +
+        '<p style="font-size:.8rem;color:#888">点击已解锁角色可装备/切换 🔒 未解锁角色需在商店购买</p>' +
+        '<div class="gallery-grid">' + charCards + '</div>' +
+        '<button class="btn-close" data-action="close-gallery" style="width:100%;margin-top:1rem">关闭</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  return '<div id="main-content" style="background:' + mainBg + ';min-height:100vh;padding-left:' + (charPanelHtml ? '168px' : '0') + '">' + toastHtml + charPanelHtml +'
     '<header class="header">' +
       '<div class="header-left">' +
         '<span style="font-size:1.3rem">' + (w ? w.icon : '') + '</span>' +
@@ -672,6 +750,7 @@ function renderMain() {
       '<div class="header-right">' +
         '<span class="streak-badge">🔥 连击 x' + state.streak + '</span>' +
         '<button class="btn-shop" data-action="open-checkin" style="' + (hasTodayCheckin() ? '' : 'background:rgba(255,215,0,.18);border-color:rgba(255,215,0,.5);') + '">📅 签到' + (hasTodayCheckin() ? ' ✅' : '') + '</button>' +
+        '<button class="btn-shop" data-action="open-gallery">📖 图鉴</button>' +
         '<button class="btn-shop" data-action="open-shop">🛒 商店</button>' +
         '<button class="btn-switch" data-action="switch-world">🔄 换世界观</button>' +
         '</div>' +
@@ -699,6 +778,7 @@ function renderMain() {
     rewardModalHtml +
     settingsHtml +
     renderCheckinModal() +
+    galleryHtml +
     '<main class="task-list">' + rewardTasksHtml + taskCards + doneCards + '</main>' +
     '<footer class="footer">' +
       '<p>等级 Lv.' + state.level + ' | 积分 ' + state.points + ' XP | 连击 x' + state.streak + ' | 已完成 ' + doneTodos.length + ' 个任务</p>' +
@@ -1239,6 +1319,8 @@ document.addEventListener('click', function(e) {
     if (action === 'open-checkin') { state.checkinOpen = true; render(); return; }
     if (action === 'close-checkin') { state.checkinOpen = false; render(); return; }
     if (action === 'do-checkin') { doCheckin(); return; }
+    if (action === 'open-gallery') { state.galleryOpen = true; render(); return; }
+    if (action === 'close-gallery') { state.galleryOpen = false; render(); return; }
     // 奖励弹窗生成/取消按钮
     if (action === 'generate-reward') {
       var genBtn = document.getElementById('btn-gen-reward');
@@ -1279,6 +1361,11 @@ document.addEventListener('click', function(e) {
   var checkinOverlay = document.getElementById('checkin-overlay');
   if (checkinOverlay && checkinOverlay.contains(e.target) && !checkinOverlay.querySelector('.modal').contains(e.target)) {
     state.checkinOpen = false; render(); return;
+  }
+  // 8. 图鉴弹窗点击遮罩关闭
+  var galleryOverlay = document.getElementById('gallery-overlay');
+  if (galleryOverlay && galleryOverlay.contains(e.target) && !galleryOverlay.querySelector('.modal').contains(e.target)) {
+    state.galleryOpen = false; render(); return;
   }
 });
 
